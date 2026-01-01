@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ICPC 2025 Contest Timer</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #ffffff;
+    height: 100vh;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #111;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  .header {
+    position: absolute;
+    top: 25px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 50px;
+  }
+
+  .logo-left { justify-self: start; }
+  .logo-right { justify-self: end; margin-right: 100px; }
+
+  .logo-left img,
+  .logo-right img {
+    height: 60px;
+  }
+
+  .event-text {
+    text-align: center;
+  }
+
+  .event-text h1 {
+    margin: 0;
+    font-size: 26px;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+
+  .event-text p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #444;
+  }
+
+  /* TIMER */
+  .center {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .timer {
+    font-size: 120px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    color: #000;
+  }
+
+  .timer.warning {
+    color: #d60000;
+  }
+
+  /* FOOTER */
+  .footer {
+    position: absolute;
+    bottom: 25px;
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+  }
+
+  /* ADMIN PANEL */
+  #adminPanel {
+    position: absolute;
+    bottom: 70px;
+    width: 100%;
+    text-align: center;
+    display: none;
+  }
+
+  #adminPanel input {
+    width: 70px;
+    font-size: 18px;
+    padding: 5px;
+    margin: 0 5px;
+    text-align: center;
+  }
+
+  #adminPanel button {
+    font-size: 16px;
+    padding: 6px 14px;
+    margin: 0 6px;
+    cursor: pointer;
+  }
+
+  /* WATERMARK */
+  .watermark {
+    position: absolute;
+    bottom: 80px;
+    right: 40px;
+    opacity: 0.04;
+  }
+
+  .watermark img {
+    height: 160px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-left">
+    <img src="icpc.png" alt="ICPC Logo">
+  </div>
+
+  <div class="event-text">
+    <h1>ICPC Asia Multisite Regionals 2025</h1>
+    <p>Amritapuri Regional • Onsite Contest</p>
+  </div>
+
+  <div class="logo-right">
+    <img src="amrita.png" alt="Amrita Logo">
+  </div>
+</div>
+
+<!-- TIMER -->
+<div class="center">
+  <div class="timer" id="timer">00:00:00</div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <input type="number" id="ah" placeholder="HH" min="0">
+  <input type="number" id="am" placeholder="MM" min="0" max="59">
+  <input type="number" id="as" placeholder="SS" min="0" max="59">
+  <button onclick="setDuration()">SET</button>
+  <button onclick="startContest()">START</button>
+  <button onclick="lockAdmin()">LOCK</button>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Hosted by Amrita Vishwa Vidyapeetham • Powered by ICPC Foundation
+</div>
+
+<!-- WATERMARK -->
+<div class="watermark">
+  <img src="icpc.png" alt="">
+</div>
+
+<script>
+  /* ================= CONFIG ================= */
+  const ADMIN_PIN = "amrita2025icpc"; // 🔴 CHANGE THIS
+  const DURATION_KEY = "icpc_2025_duration";
+  const START_KEY = "icpc_2025_start_time";
+  /* ========================================== */
+
+  let adminUnlocked = false;
+
+  /* KEY COMBO: CTRL + SHIFT + A */
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") {
+      requestPin();
+    }
+  });
+
+  function requestPin() {
+    if (adminUnlocked) return;
+    const pin = prompt("Enter Admin PIN:");
+    if (pin === ADMIN_PIN) {
+      adminUnlocked = true;
+      document.getElementById("adminPanel").style.display = "block";
+    } else {
+      alert("Incorrect PIN");
+    }
+  }
+
+  function lockAdmin() {
+    adminUnlocked = false;
+    document.getElementById("adminPanel").style.display = "none";
+  }
+
+  /* SET DURATION ONLY */
+  function setDuration() {
+    const h = parseInt(document.getElementById("ah").value) || 0;
+    const m = parseInt(document.getElementById("am").value) || 0;
+    const s = parseInt(document.getElementById("as").value) || 0;
+
+    const totalSeconds = h * 3600 + m * 60 + s;
+    if (totalSeconds <= 0) return;
+
+    localStorage.setItem(DURATION_KEY, totalSeconds);
+    localStorage.removeItem(START_KEY);
+    updateDisplay(totalSeconds * 1000);
+  }
+
+  /* START CONTEST */
+  function startContest() {
+    if (!localStorage.getItem(DURATION_KEY)) return;
+    if (localStorage.getItem(START_KEY)) return;
+    localStorage.setItem(START_KEY, Date.now());
+  }
+
+  /* DISPLAY FORMAT */
+  function updateDisplay(ms) {
+    const h = Math.floor(ms / 3600000);
+    ms %= 3600000;
+    const m = Math.floor(ms / 60000);
+    ms %= 60000;
+    const s = Math.floor(ms / 1000);
+
+    document.getElementById("timer").textContent =
+      String(h).padStart(2, "0") + ":" +
+      String(m).padStart(2, "0") + ":" +
+      String(s).padStart(2, "0");
+  }
+
+  /* MAIN LOOP */
+  function updateTimer() {
+    const duration = localStorage.getItem(DURATION_KEY);
+    const startTime = localStorage.getItem(START_KEY);
+
+    if (!duration) return;
+
+    if (!startTime) {
+      updateDisplay(duration * 1000);
+      return;
+    }
+
+    const elapsed = Date.now() - startTime;
+    let remaining = Math.max(0, duration * 1000 - elapsed);
+
+    if (remaining <= 10 * 60 * 1000) {
+      document.getElementById("timer").classList.add("warning");
+    }
+
+    updateDisplay(remaining);
+  }
+
+  setInterval(updateTimer, 1000);
+  updateTimer();
+</script>
+
+</body>
+</html>
