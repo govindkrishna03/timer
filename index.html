@@ -160,103 +160,97 @@
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const ADMIN_PIN = "amrita2025icpc"; // CHANGE
-/* ========================================== */
+  /* ================= CONFIG ================= */
+  const ADMIN_PIN = "amrita2025icpc"; // 🔴 CHANGE THIS
+  const DURATION_KEY = "icpc_2025_duration";
+  const START_KEY = "icpc_2025_start_time";
+  /* ========================================== */
 
-let adminUnlocked = false;
+  let adminUnlocked = false;
 
-/* CTRL + SHIFT + A */
-document.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") {
-    requestPin();
-  }
-});
-
-function requestPin() {
-  if (adminUnlocked) return;
-  const pin = prompt("Enter Admin PIN:");
-  if (pin === ADMIN_PIN) {
-    adminUnlocked = true;
-    document.getElementById("adminPanel").style.display = "block";
-  } else {
-    alert("Incorrect PIN");
-  }
-}
-
-function lockAdmin() {
-  adminUnlocked = false;
-  document.getElementById("adminPanel").style.display = "none";
-}
-
-/* SET DURATION (NO START) */
-async function setDuration() {
-  const h = parseInt(ah.value) || 0;
-  const m = parseInt(am.value) || 0;
-  const s = parseInt(as.value) || 0;
-
-  const duration = h * 3600 + m * 60 + s;
-  if (duration <= 0) return;
-
-  await fetch("/api/timer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "set",
-      duration
-    })
-  });
-
-  updateDisplay(duration * 1000);
-}
-
-/* START CONTEST */
-async function startContest() {
-  await fetch("/api/timer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "start" })
-  });
-}
-
-/* DISPLAY */
-function updateDisplay(ms) {
-  const h = Math.floor(ms / 3600000);
-  ms %= 3600000;
-  const m = Math.floor(ms / 60000);
-  ms %= 60000;
-  const s = Math.floor(ms / 1000);
-
-  timer.textContent =
-    String(h).padStart(2, "0") + ":" +
-    String(m).padStart(2, "0") + ":" +
-    String(s).padStart(2, "0");
-}
-
-/* MAIN LOOP */
-async function updateTimer() {
-  const res = await fetch("/api/timer");
-  const data = await res.json();
-
-  if (data.state === "idle") return;
-
-  if (data.state === "ready") {
-    updateDisplay(data.duration * 1000);
-    return;
-  }
-
-  if (data.state === "running") {
-    if (data.remaining <= 10 * 60 * 1000) {
-      timer.classList.add("warning");
+  /* KEY COMBO: CTRL + SHIFT + A */
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") {
+      requestPin();
     }
-    updateDisplay(data.remaining);
+  });
+
+  function requestPin() {
+    if (adminUnlocked) return;
+    const pin = prompt("Enter Admin PIN:");
+    if (pin === ADMIN_PIN) {
+      adminUnlocked = true;
+      document.getElementById("adminPanel").style.display = "block";
+    } else {
+      alert("Incorrect PIN");
+    }
   }
-}
 
-setInterval(updateTimer, 1000);
-updateTimer();
+  function lockAdmin() {
+    adminUnlocked = false;
+    document.getElementById("adminPanel").style.display = "none";
+  }
+
+  /* SET DURATION ONLY */
+  function setDuration() {
+    const h = parseInt(document.getElementById("ah").value) || 0;
+    const m = parseInt(document.getElementById("am").value) || 0;
+    const s = parseInt(document.getElementById("as").value) || 0;
+
+    const totalSeconds = h * 3600 + m * 60 + s;
+    if (totalSeconds <= 0) return;
+
+    localStorage.setItem(DURATION_KEY, totalSeconds);
+    localStorage.removeItem(START_KEY);
+    updateDisplay(totalSeconds * 1000);
+  }
+
+  /* START CONTEST */
+  function startContest() {
+    if (!localStorage.getItem(DURATION_KEY)) return;
+    if (localStorage.getItem(START_KEY)) return;
+    localStorage.setItem(START_KEY, Date.now());
+  }
+
+  /* DISPLAY FORMAT */
+  function updateDisplay(ms) {
+    const h = Math.floor(ms / 3600000);
+    ms %= 3600000;
+    const m = Math.floor(ms / 60000);
+    ms %= 60000;
+    const s = Math.floor(ms / 1000);
+
+    document.getElementById("timer").textContent =
+      String(h).padStart(2, "0") + ":" +
+      String(m).padStart(2, "0") + ":" +
+      String(s).padStart(2, "0");
+  }
+
+  /* MAIN LOOP */
+  function updateTimer() {
+    const duration = localStorage.getItem(DURATION_KEY);
+    const startTime = localStorage.getItem(START_KEY);
+
+    if (!duration) return;
+
+    if (!startTime) {
+      updateDisplay(duration * 1000);
+      return;
+    }
+
+    const elapsed = Date.now() - startTime;
+    let remaining = Math.max(0, duration * 1000 - elapsed);
+
+    if (remaining <= 10 * 60 * 1000) {
+      document.getElementById("timer").classList.add("warning");
+    }
+
+    updateDisplay(remaining);
+  }
+
+  setInterval(updateTimer, 1000);
+  updateTimer();
 </script>
-
 
 </body>
 </html>
